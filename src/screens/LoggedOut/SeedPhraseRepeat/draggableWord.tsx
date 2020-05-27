@@ -18,6 +18,13 @@ import Animated, {
   block,
   add,
   neq,
+  Clock,
+  startClock,
+  clockRunning,
+  stopClock,
+  diffClamp,
+  diff,
+  set,
 } from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
 
@@ -46,6 +53,7 @@ const PhraseDraggable: React.FC<{
   const yAbs = useRef(new Animated.Value(0)).current
   const [positionReady, setPositionReady] = useState(false)
   const dimensionsReady = useRef<Animated.Node<number>>(new Animated.Value(0))
+  const lastHoverId = useRef(new Animated.Value(word.id)).current
 
   const [isSelected, setSelected] = useState(false)
 
@@ -84,6 +92,7 @@ const PhraseDraggable: React.FC<{
     max: Animated.Node<number>,
   ) => and(greaterOrEq(val, min), lessOrEq(val, max))
 
+  const clock = new Clock()
   const getOverlap = (w: WordState) =>
     block([
       cond(
@@ -94,9 +103,21 @@ const PhraseDraggable: React.FC<{
           ),
           neq(w.id, word.id),
         ),
-        call([], () => {
-          console.log('OVERLAP')
-        }),
+        [
+          [
+            cond(greaterOrEq(diff(clock), 50), [
+              cond(neq(lastHoverId, w.id), [
+                call([], () => {
+                  console.log('OVERLAP')
+                }),
+                set(lastHoverId, w.id),
+              ]),
+              stopClock(clock),
+            ]),
+          ],
+          [startClock(clock)],
+        ],
+        [cond(clockRunning(clock), stopClock(clock))],
       ),
     ])
 
@@ -112,15 +133,21 @@ const PhraseDraggable: React.FC<{
 
   return (
     <View
+      style={{
+        zIndex: isSelected ? 4 : 0,
+      }}
       ref={(ref) => {
         ref?.measure((x, y, width, height, pageX, pageY) => {
-          if (!positionReady && height !== 0) {
+          if (
+            !positionReady &&
+            height !== 0 &&
+            phraseState[0].position.height === 0
+          ) {
             const p = { x: pageX, y: pageY, width, height }
-            onLayout(p, word.id)
-            console.log(p)
             setPosition(p)
             setPositionReady(true)
             dimensionsReady.current = new Animated.Value(1)
+            onLayout(p, word.id)
           }
         })
       }}
@@ -164,7 +191,7 @@ const PhraseDraggable: React.FC<{
               justifyContent: 'center',
               margin: 6,
               paddingHorizontal: 20,
-              elevation: isSelected ? 11 : 10,
+              elevation: 10,
               borderColor: isSelected ? Colors.activity : 'transparent',
               borderWidth: 1.7,
             },
@@ -178,4 +205,4 @@ const PhraseDraggable: React.FC<{
   )
 }
 
-export default PhraseDraggable
+export default React.memo(PhraseDraggable)
