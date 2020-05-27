@@ -16,6 +16,7 @@ export interface WordPosition {
 }
 
 export interface WordState {
+  id: number
   word: string
   position: WordPosition
   active: boolean
@@ -24,7 +25,8 @@ export interface WordState {
 const SeedPhraseRepeat: React.FC = () => {
   const redirectToClaims = useRedirectTo(ScreenNames.LoggedIn)
   const [seedphrase, setSeedphrase] = useState<WordState[]>(
-    SDK.getMnemonic().map((word) => ({
+    SDK.getMnemonic().map((word, key) => ({
+      id: key,
       word,
       position: {
         x: 0,
@@ -36,9 +38,9 @@ const SeedPhraseRepeat: React.FC = () => {
     })),
   )
 
-  const handleLayout = (position: WordPosition, word: string) => {
+  const handleLayout = (position: WordPosition, wordId: number) => {
     setSeedphrase((prevState) => {
-      const stateWordI = prevState.findIndex((w) => w.word === word)
+      const stateWordI = prevState.findIndex((w) => w.id === wordId)
       const newState = prevState
       newState[stateWordI].position = position
       return newState
@@ -59,7 +61,7 @@ const SeedPhraseRepeat: React.FC = () => {
           return (
             <PhraseDraggable
               key={key}
-              word={word.word}
+              word={word}
               onLayout={handleLayout}
               phraseState={seedphrase}
             />

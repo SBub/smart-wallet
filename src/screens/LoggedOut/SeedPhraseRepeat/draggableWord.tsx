@@ -1,4 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, {
+  useRef,
+  useState,
+  ReactNode,
+  MutableRefObject,
+  useEffect,
+} from 'react'
 import { LayoutChangeEvent, View } from 'react-native'
 import Animated, {
   event,
@@ -13,12 +19,13 @@ import { Colors } from '~/utils/colors'
 import Paragraph from '~/components/Paragraph'
 import { WordState, WordPosition } from './'
 import { animateInteraction } from './animations'
+import { random } from 'sjcl'
 
 const PhraseDraggable: React.FC<{
-  word: string
-  onLayout: (position: WordPosition, word: string) => void
+  word: WordState
+  onLayout: (position: WordPosition, word: number) => void
   phraseState: WordState[]
-}> = ({ word, onLayout }) => {
+}> = ({ word, onLayout, phraseState }) => {
   const xDrag = useRef(new Animated.Value(0)).current
   const yDrag = useRef(new Animated.Value(0)).current
   const vDrag = useRef(new Animated.Value(0)).current
@@ -29,6 +36,9 @@ const PhraseDraggable: React.FC<{
     x: 0,
     y: 0,
   })
+  const xAbs = useRef(new Animated.Value(0)).current
+  const yAbs = useRef(new Animated.Value(0)).current
+  const [positionReady, setPositionReady] = useState(false)
 
   const [isSelected, setSelected] = useState(false)
 
@@ -48,6 +58,9 @@ const PhraseDraggable: React.FC<{
     [gestureState],
   )
 
+  const xVal = useRef(new Animated.Value(0)).current
+  const yVal = useRef(new Animated.Value(0)).current
+
   const onGesture = event([
     {
       nativeEvent: {
@@ -55,29 +68,77 @@ const PhraseDraggable: React.FC<{
         translationY: yDrag,
         velocityY: vDrag,
         state: gestureState,
+        absoluteX: xAbs,
+        absoluteY: yAbs,
+        x: xVal,
+        y: yVal,
       },
     },
   ])
 
   useCode(
     () =>
-      call([xDrag], ([x]) => {
-        //console.log(x)
+      call([xDrag, yDrag], ([x, y]) => {
+        /* console.log('gesture', { x, y })
+         * console.log('layout', { x: position.x, y: position.y })
+         * console.log('dim', { height: position.height, width: position.width })
+         * console.log('=====') */
       }),
-    [xDrag],
+    [xDrag, yDrag, position],
+  )
+
+  const valueInRange = (val: number, min: number, max: number) => {
+    return val >= min && val <= max
+  }
+
+  useCode(
+    () =>
+      call([xAbs, yAbs], ([x, y]) => {
+        phraseState.map((w) => {
+          const xInside = valueInRange(
+            x,
+            w.position.x,
+            w.position.x + w.position.width,
+          )
+          const yInside = valueInRange(
+            y,
+            w.position.y,
+            w.position.y + w.position.height,
+          )
+          const isOverlap = xInside && yInside
+          const sameWord = w.id === word.id
+          if (isOverlap && !sameWord) {
+            console.log('OVERLAP: ', w.word)
+          }
+        })
+      }),
+    [xAbs, yAbs],
   )
 
   const translateX = animateInteraction(xDrag, gestureState)
   const translateY = animateInteraction(yDrag, gestureState)
-
-  const handleLayout = (e: LayoutChangeEvent) => {
-    const position = e.nativeEvent.layout
-    setPosition(position)
-    onLayout(position, word)
-  }
+  /* const handleLayout = (e: LayoutChangeEvent) => {
+   *   const position = e.nativeEvent.layout
+   *   setPosition(position)
+   *   onLayout(position, word.id)
+   * } */
+  const handleLayout = () => {}
 
   return (
-    <View>
+    <View
+      ref={(ref) => {
+        ref?.measure((x, y, width, height, pageX, pageY) => {
+          const p = { x: pageX, y: pageY, width, height }
+          if (!positionReady) {
+            onLayout(p, word.id)
+            console.log(p)
+            setPosition(p)
+            setPositionReady(true)
+          }
+        })
+      }}
+      onLayout={handleLayout}
+    >
       {isSelected ? (
         <View
           style={{
@@ -106,7 +167,6 @@ const PhraseDraggable: React.FC<{
         onHandlerStateChange={onGesture}
       >
         <Animated.View
-          onLayout={handleLayout}
           style={[
             {
               backgroundColor: Colors.dragBlack,
@@ -123,7 +183,7 @@ const PhraseDraggable: React.FC<{
             { transform: [{ translateX }, { translateY }] },
           ]}
         >
-          <Paragraph>{word}</Paragraph>
+          <Paragraph>{word.word}</Paragraph>
         </Animated.View>
       </PanGestureHandler>
     </View>
