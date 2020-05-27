@@ -12,6 +12,12 @@ import Animated, {
   eq,
   useCode,
   call,
+  lessOrEq,
+  greaterOrEq,
+  and,
+  block,
+  add,
+  neq,
 } from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
 
@@ -39,6 +45,7 @@ const PhraseDraggable: React.FC<{
   const xAbs = useRef(new Animated.Value(0)).current
   const yAbs = useRef(new Animated.Value(0)).current
   const [positionReady, setPositionReady] = useState(false)
+  const dimensionsReady = useRef<Animated.Node<number>>(new Animated.Value(0))
 
   const [isSelected, setSelected] = useState(false)
 
@@ -58,9 +65,6 @@ const PhraseDraggable: React.FC<{
     [gestureState],
   )
 
-  const xVal = useRef(new Animated.Value(0)).current
-  const yVal = useRef(new Animated.Value(0)).current
-
   const onGesture = event([
     {
       nativeEvent: {
@@ -70,74 +74,58 @@ const PhraseDraggable: React.FC<{
         state: gestureState,
         absoluteX: xAbs,
         absoluteY: yAbs,
-        x: xVal,
-        y: yVal,
       },
     },
   ])
 
-  useCode(
-    () =>
-      call([xDrag, yDrag], ([x, y]) => {
-        /* console.log('gesture', { x, y })
-         * console.log('layout', { x: position.x, y: position.y })
-         * console.log('dim', { height: position.height, width: position.width })
-         * console.log('=====') */
-      }),
-    [xDrag, yDrag, position],
-  )
+  const inRange = (
+    val: Animated.Node<number>,
+    min: number,
+    max: Animated.Node<number>,
+  ) => and(greaterOrEq(val, min), lessOrEq(val, max))
 
-  const valueInRange = (val: number, min: number, max: number) => {
-    return val >= min && val <= max
-  }
+  const getOverlap = (w: WordState) =>
+    block([
+      cond(
+        and(
+          and(
+            inRange(xAbs, w.position.x, add(w.position.x, w.position.width)),
+            inRange(yAbs, w.position.y, add(w.position.y, w.position.height)),
+          ),
+          neq(w.id, word.id),
+        ),
+        call([], () => {
+          console.log('OVERLAP')
+        }),
+      ),
+    ])
 
-  useCode(
-    () =>
-      call([xAbs, yAbs], ([x, y]) => {
-        phraseState.map((w) => {
-          const xInside = valueInRange(
-            x,
-            w.position.x,
-            w.position.x + w.position.width,
-          )
-          const yInside = valueInRange(
-            y,
-            w.position.y,
-            w.position.y + w.position.height,
-          )
-          const isOverlap = xInside && yInside
-          const sameWord = w.id === word.id
-          if (isOverlap && !sameWord) {
-            console.log('OVERLAP: ', w.word)
-          }
-        })
-      }),
-    [xAbs, yAbs],
-  )
+  useCode(() => {
+    return cond(
+      and(eq(dimensionsReady.current, 1), eq(gestureState, State.ACTIVE)),
+      [phraseState.map(getOverlap)],
+    )
+  }, [xAbs, yAbs, dimensionsReady.current])
 
   const translateX = animateInteraction(xDrag, gestureState)
   const translateY = animateInteraction(yDrag, gestureState)
-  /* const handleLayout = (e: LayoutChangeEvent) => {
-   *   const position = e.nativeEvent.layout
-   *   setPosition(position)
-   *   onLayout(position, word.id)
-   * } */
-  const handleLayout = () => {}
 
   return (
     <View
       ref={(ref) => {
         ref?.measure((x, y, width, height, pageX, pageY) => {
-          const p = { x: pageX, y: pageY, width, height }
-          if (!positionReady) {
+          if (!positionReady && height !== 0) {
+            const p = { x: pageX, y: pageY, width, height }
             onLayout(p, word.id)
             console.log(p)
             setPosition(p)
             setPositionReady(true)
+            dimensionsReady.current = new Animated.Value(1)
           }
         })
       }}
-      onLayout={handleLayout}
+      // NOTE: @ref.measure() returns undefined without the @onLayout prop
+      onLayout={() => {}}
     >
       {isSelected ? (
         <View
