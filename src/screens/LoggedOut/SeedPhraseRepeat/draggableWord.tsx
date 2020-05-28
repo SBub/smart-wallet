@@ -34,11 +34,18 @@ import { WordState, WordPosition } from './'
 import { animateInteraction } from './animations'
 import { random } from 'sjcl'
 
-const PhraseDraggable: React.FC<{
+interface Props {
   word: WordState
   onLayout: (position: WordPosition, word: number) => void
   phraseState: WordState[]
-}> = ({ word, onLayout, phraseState }) => {
+  onDrop: (next: number, prev: number) => void
+}
+const PhraseDraggable: React.FC<Props> = ({
+  word,
+  onLayout,
+  phraseState,
+  onDrop,
+}) => {
   const xDrag = useRef(new Animated.Value(0)).current
   const yDrag = useRef(new Animated.Value(0)).current
   const vDrag = useRef(new Animated.Value(0)).current
@@ -107,8 +114,17 @@ const PhraseDraggable: React.FC<{
           [
             cond(greaterOrEq(diff(clock), 50), [
               cond(neq(lastHoverId, w.id), [
-                call([], () => {
-                  console.log('OVERLAP')
+                /* call([], () => {
+                 *   console.log('OVERLAP')
+                 * }), */
+                /* cond(
+                 *   eq(gestureState, State.END),
+                 *   call([], () => {
+                 *     console.log('DROPPED')
+                 *   }),
+                 * ), */
+                call([gestureState], ([state]) => {
+                  console.log(state)
                 }),
                 set(lastHoverId, w.id),
               ]),
@@ -121,12 +137,31 @@ const PhraseDraggable: React.FC<{
       ),
     ])
 
-  useCode(() => {
-    return cond(
-      and(eq(dimensionsReady.current, 1), eq(gestureState, State.ACTIVE)),
-      [phraseState.map(getOverlap)],
+  const isIntersection = (x: number, y: number, position: WordPosition) => {
+    const isRange = (val: number, min: number, max: number) =>
+      val >= min && val <= max
+    return (
+      isRange(x, position.x, position.x + position.width) &&
+      isRange(y, position.y, position.y + position.height)
     )
-  }, [xAbs, yAbs, dimensionsReady.current])
+  }
+
+  useCode(() => {
+    /* return cond(
+     *   and(eq(dimensionsReady.current, 1), eq(gestureState, State.ACTIVE)),
+     *   [phraseState.map(getOverlap)],
+     * ) */
+    return cond(eq(dimensionsReady.current, 1), [
+      cond(eq(gestureState, State.END), [
+        call([xAbs, yAbs], ([x, y]) => {
+          const replaceWord = phraseState.find((w) =>
+            isIntersection(x, y, w.position),
+          )
+          if (replaceWord) onDrop(word.id, replaceWord.id)
+        }),
+      ]),
+    ])
+  }, [gestureState, dimensionsReady.current])
 
   const translateX = animateInteraction(xDrag, gestureState)
   const translateY = animateInteraction(yDrag, gestureState)

@@ -79,6 +79,6 @@ export const animateInteraction = (
       cond(eq(dragging, 0), [set(dragging, 1), set(start, position)]),
       set(position, add(start, gestureTranslation)),
     ],
-    [set(dragging, 0), set(position, runSpring(clock, position, velocity, 0))],
+    //[set(dragging, 0), set(position, runSpring(clock, position, velocity, 0))],
   )
 }

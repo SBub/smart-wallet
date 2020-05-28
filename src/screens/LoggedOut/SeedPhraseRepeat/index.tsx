@@ -47,6 +47,17 @@ const SeedPhraseRepeat: React.FC = () => {
     })
   }
 
+  const handleDrop = (dragId: number, replaceId: number) => {
+    const arr = [...seedphrase]
+    const cutout = arr.splice(dragId, 1)[0]
+    arr.splice(replaceId, 0, cutout)
+    console.log('drag', seedphrase[dragId].word)
+    console.log('replace', seedphrase[replaceId].word)
+    console.log(seedphrase.map((w) => w.word))
+    console.log(arr.map((w) => w.word))
+    setSeedphrase(arr)
+  }
+
   return (
     <ScreenContainer>
       <View
@@ -61,9 +72,10 @@ const SeedPhraseRepeat: React.FC = () => {
           return (
             <PhraseDraggable
               key={key}
-              word={word}
+              word={seedphrase[key]}
               onLayout={handleLayout}
               phraseState={seedphrase}
+              onDrop={handleDrop}
             />
           )
         })}
