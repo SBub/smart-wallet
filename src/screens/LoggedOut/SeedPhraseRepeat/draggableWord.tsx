@@ -39,12 +39,15 @@ interface Props {
   onLayout: (position: WordPosition, word: number) => void
   phraseState: WordState[]
   onDrop: (next: number, prev: number) => void
+  isHighlight: boolean
 }
+
 const PhraseDraggable: React.FC<Props> = ({
   word,
   onLayout,
   phraseState,
   onDrop,
+  isHighlight,
 }) => {
   const xDrag = useRef(new Animated.Value(0)).current
   const yDrag = useRef(new Animated.Value(0)).current
@@ -227,7 +230,8 @@ const PhraseDraggable: React.FC<Props> = ({
               margin: 6,
               paddingHorizontal: 20,
               elevation: 10,
-              borderColor: isSelected ? Colors.activity : 'transparent',
+              borderColor:
+                isSelected || isHighlight ? Colors.activity : 'transparent',
               borderWidth: 1.7,
             },
             { transform: [{ translateX }, { translateY }] },

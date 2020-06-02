@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View } from 'react-native'
+import { View, Platform, UIManager, LayoutAnimation } from 'react-native'
 
 import ScreenContainer from '~/components/ScreenContainer'
 
@@ -22,6 +22,12 @@ export interface WordState {
   active: boolean
 }
 
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true)
+  }
+}
+
 const SeedPhraseRepeat: React.FC = () => {
   const redirectToClaims = useRedirectTo(ScreenNames.LoggedIn)
   const [seedphrase, setSeedphrase] = useState<WordState[]>(
@@ -37,6 +43,7 @@ const SeedPhraseRepeat: React.FC = () => {
       active: false,
     })),
   )
+  const [droppedIndex, setDroppedIndex] = useState(-1)
 
   const handleLayout = (position: WordPosition, wordId: number) => {
     setSeedphrase((prevState) => {
@@ -51,11 +58,12 @@ const SeedPhraseRepeat: React.FC = () => {
     const arr = [...seedphrase]
     const cutout = arr.splice(dragId, 1)[0]
     arr.splice(replaceId, 0, cutout)
-    console.log('drag', seedphrase[dragId].word)
-    console.log('replace', seedphrase[replaceId].word)
-    console.log(seedphrase.map((w) => w.word))
-    console.log(arr.map((w) => w.word))
+    LayoutAnimation.configureNext({
+      ...LayoutAnimation.Presets.spring,
+      duration: 400,
+    })
     setSeedphrase(arr)
+    setDroppedIndex(dragId)
   }
 
   return (
@@ -76,6 +84,7 @@ const SeedPhraseRepeat: React.FC = () => {
               onLayout={handleLayout}
               phraseState={seedphrase}
               onDrop={handleDrop}
+              isHighlight={word.id === droppedIndex}
             />
           )
         })}
