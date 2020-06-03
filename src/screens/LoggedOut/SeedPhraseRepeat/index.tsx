@@ -2,11 +2,16 @@ import React, { useState } from 'react'
 import { View, Platform, UIManager, LayoutAnimation } from 'react-native'
 
 import ScreenContainer from '~/components/ScreenContainer'
-
 import useRedirectTo from '~/hooks/useRedirectTo'
 import { ScreenNames } from '~/types/screens'
 import SDK from '~/utils/SDK'
 import PhraseDraggable from './draggableWord'
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true)
+  }
+}
 
 export interface WordPosition {
   x: number
@@ -19,13 +24,6 @@ export interface WordState {
   id: number
   word: string
   position: WordPosition
-  active: boolean
-}
-
-if (Platform.OS === 'android') {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true)
-  }
 }
 
 const SeedPhraseRepeat: React.FC = () => {
@@ -40,7 +38,6 @@ const SeedPhraseRepeat: React.FC = () => {
         height: 0,
         width: 0,
       },
-      active: false,
     })),
   )
   const [droppedIndex, setDroppedIndex] = useState(-1)
@@ -55,15 +52,20 @@ const SeedPhraseRepeat: React.FC = () => {
   }
 
   const handleDrop = (dragId: number, replaceId: number) => {
-    const arr = [...seedphrase]
-    const cutout = arr.splice(dragId, 1)[0]
-    arr.splice(replaceId, 0, cutout)
-    LayoutAnimation.configureNext({
-      ...LayoutAnimation.Presets.spring,
-      duration: 400,
+    setSeedphrase((prevState) => {
+      const arr = [...prevState]
+      const dragKey = arr.findIndex((w) => w.id == dragId)
+      const replaceKey = arr.findIndex((w) => w.id == replaceId)
+      const cutout = arr.splice(dragKey, 1)[0]
+      console.log({ dragKey, dragId })
+      arr.splice(replaceKey, 0, cutout)
+      LayoutAnimation.configureNext({
+        ...LayoutAnimation.Presets.spring,
+        duration: 400,
+      })
+      setDroppedIndex(dragId)
+      return arr
     })
-    setSeedphrase(arr)
-    setDroppedIndex(dragId)
   }
 
   return (
@@ -80,7 +82,7 @@ const SeedPhraseRepeat: React.FC = () => {
           return (
             <PhraseDraggable
               key={key}
-              word={seedphrase[key]}
+              id={word.id}
               onLayout={handleLayout}
               phraseState={seedphrase}
               onDrop={handleDrop}

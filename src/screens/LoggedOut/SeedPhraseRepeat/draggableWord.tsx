@@ -1,29 +1,11 @@
-import React, {
-  useRef,
-  useState,
-  ReactNode,
-  MutableRefObject,
-  useEffect,
-} from 'react'
-import { LayoutChangeEvent, View } from 'react-native'
+import React, { useRef, useState, useEffect } from 'react'
+import { View } from 'react-native'
 import Animated, {
   event,
   cond,
   eq,
   useCode,
   call,
-  lessOrEq,
-  greaterOrEq,
-  and,
-  block,
-  add,
-  neq,
-  Clock,
-  startClock,
-  clockRunning,
-  stopClock,
-  diffClamp,
-  diff,
   set,
 } from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
@@ -32,10 +14,9 @@ import { Colors } from '~/utils/colors'
 import Paragraph from '~/components/Paragraph'
 import { WordState, WordPosition } from './'
 import { animateInteraction } from './animations'
-import { random } from 'sjcl'
 
 interface Props {
-  word: WordState
+  id: number
   onLayout: (position: WordPosition, word: number) => void
   phraseState: WordState[]
   onDrop: (next: number, prev: number) => void
@@ -43,7 +24,7 @@ interface Props {
 }
 
 const PhraseDraggable: React.FC<Props> = ({
-  word,
+  id,
   onLayout,
   phraseState,
   onDrop,
@@ -53,17 +34,11 @@ const PhraseDraggable: React.FC<Props> = ({
   const yDrag = useRef(new Animated.Value(0)).current
   const vDrag = useRef(new Animated.Value(0)).current
   const gestureState = useRef(new Animated.Value(-1)).current
-  const [position, setPosition] = useState<WordPosition>({
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-  })
   const xAbs = useRef(new Animated.Value(0)).current
   const yAbs = useRef(new Animated.Value(0)).current
   const [positionReady, setPositionReady] = useState(false)
   const dimensionsReady = useRef<Animated.Node<number>>(new Animated.Value(0))
-  const lastHoverId = useRef(new Animated.Value(word.id)).current
+  const word = phraseState.find((w) => w.id === id)
 
   const [isSelected, setSelected] = useState(false)
 
@@ -96,50 +71,6 @@ const PhraseDraggable: React.FC<Props> = ({
     },
   ])
 
-  const inRange = (
-    val: Animated.Node<number>,
-    min: number,
-    max: Animated.Node<number>,
-  ) => and(greaterOrEq(val, min), lessOrEq(val, max))
-
-  const clock = new Clock()
-  const getOverlap = (w: WordState) =>
-    block([
-      cond(
-        and(
-          and(
-            inRange(xAbs, w.position.x, add(w.position.x, w.position.width)),
-            inRange(yAbs, w.position.y, add(w.position.y, w.position.height)),
-          ),
-          neq(w.id, word.id),
-        ),
-        [
-          [
-            cond(greaterOrEq(diff(clock), 50), [
-              cond(neq(lastHoverId, w.id), [
-                /* call([], () => {
-                 *   console.log('OVERLAP')
-                 * }), */
-                /* cond(
-                 *   eq(gestureState, State.END),
-                 *   call([], () => {
-                 *     console.log('DROPPED')
-                 *   }),
-                 * ), */
-                call([gestureState], ([state]) => {
-                  console.log(state)
-                }),
-                set(lastHoverId, w.id),
-              ]),
-              stopClock(clock),
-            ]),
-          ],
-          [startClock(clock)],
-        ],
-        [cond(clockRunning(clock), stopClock(clock))],
-      ),
-    ])
-
   const isIntersection = (x: number, y: number, position: WordPosition) => {
     const isRange = (val: number, min: number, max: number) =>
       val >= min && val <= max
@@ -150,24 +81,34 @@ const PhraseDraggable: React.FC<Props> = ({
   }
 
   useCode(() => {
-    /* return cond(
-     *   and(eq(dimensionsReady.current, 1), eq(gestureState, State.ACTIVE)),
-     *   [phraseState.map(getOverlap)],
-     * ) */
     return cond(eq(dimensionsReady.current, 1), [
       cond(eq(gestureState, State.END), [
+        set(gestureState, 0),
         call([xAbs, yAbs], ([x, y]) => {
           const replaceWord = phraseState.find((w) =>
             isIntersection(x, y, w.position),
           )
-          if (replaceWord) onDrop(word.id, replaceWord.id)
+          if (replaceWord) {
+            onDrop(id, replaceWord.id)
+          }
         }),
       ]),
     ])
-  }, [gestureState, dimensionsReady.current])
+  }, [gestureState, dimensionsReady.current, id])
 
   const translateX = animateInteraction(xDrag, gestureState)
   const translateY = animateInteraction(yDrag, gestureState)
+
+  const viewRef = useRef<View | null>(null)
+
+  useEffect(() => {
+    if (positionReady) {
+      viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        const p = { x: pageX, y: pageY, width, height }
+        onLayout(p, id)
+      })
+    }
+  }, [id])
 
   return (
     <View
@@ -175,6 +116,7 @@ const PhraseDraggable: React.FC<Props> = ({
         zIndex: isSelected ? 4 : 0,
       }}
       ref={(ref) => {
+        if (!viewRef.current) viewRef.current = ref
         ref?.measure((x, y, width, height, pageX, pageY) => {
           if (
             !positionReady &&
@@ -182,10 +124,9 @@ const PhraseDraggable: React.FC<Props> = ({
             phraseState[0].position.height === 0
           ) {
             const p = { x: pageX, y: pageY, width, height }
-            setPosition(p)
             setPositionReady(true)
             dimensionsReady.current = new Animated.Value(1)
-            onLayout(p, word.id)
+            onLayout(p, id)
           }
         })
       }}
@@ -244,4 +185,4 @@ const PhraseDraggable: React.FC<Props> = ({
   )
 }
 
-export default React.memo(PhraseDraggable)
+export default PhraseDraggable
