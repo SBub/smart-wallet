@@ -22,7 +22,7 @@ export interface WordPosition {
 
 export interface WordState {
   id: number
-  word: string
+  text: string
   position: WordPosition
 }
 
@@ -31,7 +31,7 @@ const SeedPhraseRepeat: React.FC = () => {
   const [seedphrase, setSeedphrase] = useState<WordState[]>(
     SDK.getMnemonic().map((word, key) => ({
       id: key,
-      word,
+      text: word,
       position: {
         x: 0,
         y: 0,

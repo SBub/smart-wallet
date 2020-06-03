@@ -27,6 +27,37 @@ interface Props {
   isHighlight: boolean
 }
 
+const useLayoutPosition = (
+  id: number,
+  onLayoutCb: (position: WordPosition, word: number) => void,
+) => {
+  const [positionReady, setPositionReady] = useState(false)
+  const dimensionsReady = useRef<Animated.Node<number>>(new Animated.Value(0))
+
+  const viewRef = useRef<View | null>(null)
+
+  useEffect(() => {
+    if (positionReady) {
+      viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        const p = { x: pageX, y: pageY, width, height }
+        onLayoutCb(p, id)
+      })
+    }
+  }, [id])
+
+  const setInitialPositions = (ref: View) => {
+    ref.measure((x, y, width, height, pageX, pageY) => {
+      if (!positionReady && height !== 0) {
+        setPositionReady(true)
+        dimensionsReady.current = new Animated.Value(1)
+        onLayoutCb({ x: pageX, y: pageY, width, height }, id)
+      }
+    })
+  }
+
+  return { dimensionsReady, viewRef, setInitialPositions }
+}
+
 const PhraseDraggable: React.FC<Props> = ({
   id,
   onLayout,
@@ -34,14 +65,16 @@ const PhraseDraggable: React.FC<Props> = ({
   onDrop,
   isHighlight,
 }) => {
+  const { dimensionsReady, viewRef, setInitialPositions } = useLayoutPosition(
+    id,
+    onLayout,
+  )
   const xDrag = useRef(new Animated.Value(0)).current
   const yDrag = useRef(new Animated.Value(0)).current
   const vDrag = useRef(new Animated.Value(0)).current
   const gestureState = useRef(new Animated.Value(-1)).current
   const xAbs = useRef(new Animated.Value(0)).current
   const yAbs = useRef(new Animated.Value(0)).current
-  const [positionReady, setPositionReady] = useState(false)
-  const dimensionsReady = useRef<Animated.Node<number>>(new Animated.Value(0))
   const word = phraseState.find((w) => w.id === id)
 
   const [isSelected, setSelected] = useState(false)
@@ -95,7 +128,6 @@ const PhraseDraggable: React.FC<Props> = ({
       cond(and(eq(gestureState, State.END), isDragThreshold), [
         set(gestureState, 0),
         call([xAbs, yAbs, yDrag], ([x, y, d]) => {
-          console.log(d)
           const replaceWord = phraseState.find((w) =>
             isIntersection(x, y, w.position),
           )
@@ -110,17 +142,6 @@ const PhraseDraggable: React.FC<Props> = ({
   const translateX = animateInteraction(xDrag, gestureState)
   const translateY = animateInteraction(yDrag, gestureState)
 
-  const viewRef = useRef<View | null>(null)
-
-  useEffect(() => {
-    if (positionReady) {
-      viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
-        const p = { x: pageX, y: pageY, width, height }
-        onLayout(p, id)
-      })
-    }
-  }, [id])
-
   return (
     <View
       style={{
@@ -128,21 +149,9 @@ const PhraseDraggable: React.FC<Props> = ({
       }}
       ref={(ref) => {
         if (!viewRef.current) viewRef.current = ref
-        ref?.measure((x, y, width, height, pageX, pageY) => {
-          if (
-            !positionReady &&
-            height !== 0 &&
-            phraseState[0].position.height === 0
-          ) {
-            const p = { x: pageX, y: pageY, width, height }
-            setPositionReady(true)
-            dimensionsReady.current = new Animated.Value(1)
-            onLayout(p, id)
-          }
-        })
+        ref && setInitialPositions(ref)
       }}
       onTouchStart={() => setSelected(true)}
-      onTouchEnd={() => setSelected(false)}
     >
       {isSelected ? (
         <View
@@ -189,7 +198,7 @@ const PhraseDraggable: React.FC<Props> = ({
             { transform: [{ translateX }, { translateY }] },
           ]}
         >
-          <Paragraph>{word.word}</Paragraph>
+          <Paragraph>{word?.text}</Paragraph>
         </Animated.View>
       </PanGestureHandler>
     </View>
