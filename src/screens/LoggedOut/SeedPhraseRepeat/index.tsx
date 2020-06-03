@@ -6,24 +6,12 @@ import useRedirectTo from '~/hooks/useRedirectTo'
 import { ScreenNames } from '~/types/screens'
 import SDK from '~/utils/SDK'
 import PhraseDraggable from './draggableWord'
+import { WordState, WordPosition } from './types'
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true)
   }
-}
-
-export interface WordPosition {
-  x: number
-  y: number
-  height: number
-  width: number
-}
-
-export interface WordState {
-  id: number
-  text: string
-  position: WordPosition
 }
 
 const SeedPhraseRepeat: React.FC = () => {
@@ -85,7 +73,7 @@ const SeedPhraseRepeat: React.FC = () => {
               onLayout={handleLayout}
               phraseState={seedphrase}
               onDrop={handleDrop}
-              isHighlight={word.id === droppedIndex}
+              isLastDropped={word.id === droppedIndex}
             />
           )
         })}
