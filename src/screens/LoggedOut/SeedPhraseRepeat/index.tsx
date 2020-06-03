@@ -57,7 +57,6 @@ const SeedPhraseRepeat: React.FC = () => {
       const dragKey = arr.findIndex((w) => w.id == dragId)
       const replaceKey = arr.findIndex((w) => w.id == replaceId)
       const cutout = arr.splice(dragKey, 1)[0]
-      console.log({ dragKey, dragId })
       arr.splice(replaceKey, 0, cutout)
       LayoutAnimation.configureNext({
         ...LayoutAnimation.Presets.spring,

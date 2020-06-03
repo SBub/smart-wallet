@@ -7,6 +7,10 @@ import Animated, {
   useCode,
   call,
   set,
+  greaterThan,
+  and,
+  abs,
+  or,
 } from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
 
@@ -80,11 +84,18 @@ const PhraseDraggable: React.FC<Props> = ({
     )
   }
 
+  const DRAG_THRESHOLD = 5
+  const isDragThreshold = or(
+    greaterThan(abs(xDrag), DRAG_THRESHOLD),
+    greaterThan(abs(yDrag), DRAG_THRESHOLD),
+  )
+
   useCode(() => {
     return cond(eq(dimensionsReady.current, 1), [
-      cond(eq(gestureState, State.END), [
+      cond(and(eq(gestureState, State.END), isDragThreshold), [
         set(gestureState, 0),
-        call([xAbs, yAbs], ([x, y]) => {
+        call([xAbs, yAbs, yDrag], ([x, y, d]) => {
+          console.log(d)
           const replaceWord = phraseState.find((w) =>
             isIntersection(x, y, w.position),
           )
@@ -130,8 +141,8 @@ const PhraseDraggable: React.FC<Props> = ({
           }
         })
       }}
-      // NOTE: @ref.measure() returns undefined without the @onLayout prop
-      onLayout={() => {}}
+      onTouchStart={() => setSelected(true)}
+      onTouchEnd={() => setSelected(false)}
     >
       {isSelected ? (
         <View
