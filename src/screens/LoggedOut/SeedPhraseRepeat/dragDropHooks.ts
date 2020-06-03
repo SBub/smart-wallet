@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { State } from 'react-native-gesture-handler'
 
-import { WordState, WordPosition } from './'
+import { WordState, WordPosition } from './types'
 import { animateInteraction } from './animations'
 
 export const useLayoutPosition = (
@@ -38,7 +38,6 @@ export const useLayoutPosition = (
   // NOTE: setting initial position/dimensions
   useEffect(() => {
     viewRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      console.log(height)
       if (!positionReady && height !== 0) {
         setPositionReady(true)
         dimensionsReady.current = new Animated.Value(1)
@@ -59,8 +58,10 @@ export const useDragAndDrop = (
   const [isHighlighted, setHighlighted] = useState(false)
 
   const gestureState = useRef(new Animated.Value(-1)).current
+  //NOTE used for the drag gesture
   const xDrag = useRef(new Animated.Value(0)).current
   const yDrag = useRef(new Animated.Value(0)).current
+  //NOTE used for assessing if the drop was above another word
   const xAbs = useRef(new Animated.Value(0)).current
   const yAbs = useRef(new Animated.Value(0)).current
 
