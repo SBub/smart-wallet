@@ -17,4 +17,5 @@ export enum Colors {
   peach = '#ffdebc',
   floralWhite = '#fffefc',
   dragBlack = '#161217',
+  linen = '#FFF1E3',
 }

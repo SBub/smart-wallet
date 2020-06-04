@@ -11,11 +11,12 @@ import Animated, {
   and,
   abs,
   or,
+  neq,
 } from 'react-native-reanimated'
 import { State } from 'react-native-gesture-handler'
 
 import { WordState, WordPosition } from './types'
-import { animateInteraction } from './animations'
+import { gestureFollow } from './animations'
 
 export const useLayoutPosition = (
   id: number,
@@ -65,16 +66,15 @@ export const useDragAndDrop = (
   const xAbs = useRef(new Animated.Value(0)).current
   const yAbs = useRef(new Animated.Value(0)).current
 
-  // NOTE set active to increase the elevation of the card, since it renders below the others during a gesture
+  // NOTE: using View's @onTouchStart for enabling the highlight (because of fast feedback,
+  // since using the gestureState has a longer delay). @gestureState is used for disabling the
+  // feedback due to the View's touch event being cancelled (possibly by the @gesture-handler).
   useCode(
     () =>
       cond(
-        eq(gestureState, State.ACTIVE),
-        call([new Animated.Value(true)], (sel: readonly boolean[]) => {
-          setHighlighted(sel[0])
-        }),
-        call([new Animated.Value(false)], (sel: readonly boolean[]) => {
-          setHighlighted(sel[0])
+        neq(gestureState, State.ACTIVE),
+        call([], () => {
+          setHighlighted(false)
         }),
       ),
 
@@ -93,6 +93,7 @@ export const useDragAndDrop = (
     },
   ])
 
+  // NOTE: finds whether the gesture coordinates fall within the position of a word
   const isIntersection = (x: number, y: number, position: WordPosition) => {
     const isRange = (val: number, min: number, max: number) =>
       val >= min && val <= max
@@ -102,12 +103,15 @@ export const useDragAndDrop = (
     )
   }
 
-  const DRAG_THRESHOLD = 5
+  // NOTE: distance from original position required to register a drop
+  const DROP_THRESHOLD = 5
   const isDragThreshold = or(
-    greaterThan(abs(xDrag), DRAG_THRESHOLD),
-    greaterThan(abs(yDrag), DRAG_THRESHOLD),
+    greaterThan(abs(xDrag), DROP_THRESHOLD),
+    greaterThan(abs(yDrag), DROP_THRESHOLD),
   )
 
+  // NOTE: while all the words were assigned with coordinates and a gesture is active,
+  // loop through the phrase to find which word to replace.
   useCode(() => {
     return cond(eq(dimensionsReady, 1), [
       cond(and(eq(gestureState, State.END), isDragThreshold), [
@@ -124,8 +128,9 @@ export const useDragAndDrop = (
     ])
   }, [gestureState, dimensionsReady, id])
 
-  const translateX = animateInteraction(xDrag, gestureState)
-  const translateY = animateInteraction(yDrag, gestureState)
+  // NOTE allows the view to follow the gesture coordinates
+  const translateX = gestureFollow(xDrag, gestureState)
+  const translateY = gestureFollow(yDrag, gestureState)
 
   const handleDragStart = () => setHighlighted(true)
 

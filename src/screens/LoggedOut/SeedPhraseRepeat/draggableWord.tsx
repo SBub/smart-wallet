@@ -71,7 +71,9 @@ const PhraseDraggable: React.FC<Props> = ({
             { transform: [{ translateX }, { translateY }] },
           ]}
         >
-          <Paragraph>{word?.text}</Paragraph>
+          <Paragraph customStyles={{ opacity: 0.8, color: Colors.linen }}>
+            {word?.text}
+          </Paragraph>
         </Animated.View>
       </PanGestureHandler>
     </View>
