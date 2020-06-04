@@ -16,7 +16,7 @@ const LoggedOut: React.FC = () => {
   return (
     <Stack.Navigator
       headerMode="none"
-      initialRouteName={ScreenNames.SeedPhraseRepeat}
+      initialRouteName={ScreenNames.Walkthrough}
       screenOptions={{ ...modalScreenOptions }}
     >
       <Stack.Screen name={ScreenNames.Walkthrough} component={Walkthrough} />

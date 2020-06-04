@@ -43,7 +43,12 @@ const PhraseDraggable: React.FC<Props> = ({
       onTouchStart={handleDragStart}
     >
       {isHighlighted ? (
-        <View style={styles.placeholderWrapper}>
+        <View
+          style={[
+            styles.placeholderWrapper,
+            { width: word?.position.width, height: word?.position.height },
+          ]}
+        >
           <View style={styles.placeholder} />
         </View>
       ) : (
@@ -76,8 +81,6 @@ const PhraseDraggable: React.FC<Props> = ({
 const styles = StyleSheet.create({
   placeholderWrapper: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
     padding: 7.7,
   },
   placeholder: {

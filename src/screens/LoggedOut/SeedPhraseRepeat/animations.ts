@@ -1,14 +1,5 @@
 import { useRef } from 'react'
-import Animated, {
-  set,
-  add,
-  cond,
-  eq,
-  clockRunning,
-  startClock,
-  spring,
-  stopClock,
-} from 'react-native-reanimated'
+import Animated, { set, add, cond, eq } from 'react-native-reanimated'
 import { State } from 'react-native-gesture-handler'
 
 export const animateInteraction = (

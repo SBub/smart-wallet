@@ -112,7 +112,7 @@ export const useDragAndDrop = (
     return cond(eq(dimensionsReady, 1), [
       cond(and(eq(gestureState, State.END), isDragThreshold), [
         set(gestureState, 0),
-        call([xAbs, yAbs, yDrag], ([x, y, d]) => {
+        call([xAbs, yAbs], ([x, y]) => {
           const replaceWord = phrase.find((w) =>
             isIntersection(x, y, w.position),
           )

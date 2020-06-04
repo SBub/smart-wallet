@@ -54,6 +54,10 @@ const seedphrase = {
     "Write down this phrase. It's very important!",
   OKAY: 'Okay',
   WHY_SO_ANALOGUE: 'Why so analogue?',
+  DRAG_AND_DROP_WORDS_UNTIL_IT_WILL_BE_EXACTLY_THE_SAME_PHRASE:
+    'Drag and drop words untill it will be exactly the same phrase',
+  BACK: 'Back',
+  DONE: 'Done',
 }
 
 export const strings = {
